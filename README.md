@@ -16,16 +16,20 @@ certain issue that leads to an exception, it will SQL rollback (single
 transaction is started on each accounting file) and a commit is omitted. If a
 file was completely inserted into SQL, then it's also deleted afterwards.
 
-In case a specific SQL insert for whatever reason fails, the file we be left on
-disk. Each additional execution of radspool will parse and try to commit again.
-$SPOOLDIR will grow in that case by one new accounting file, each time the
-script is run again (the most recent Radiator acctlog-combined.json file will
-be moved into the spool directory). In certain situations it might be
-beneficial to have the flexibility in eg. configuring the transaction start/end
-points. In high volume with large log files small transactions can reduce
-storage usage. In other setups it's more desirable to optimize for CPU and IO.
-Depending on the individual problem some configuration knobs might be needed to
-deliver some flexibility in that regard.
+In case of any issue, just 1 out of 10000s of inserts failing, the accounting
+file containing the data will not be deleted afterwards - it will remain where
+it is and radspool will on it's next execution (eg. cron) try to insert the
+contained data again.
+$SPOOLDIR will grow in that case by one new accounting file - each time the
+script is run the most recent active Radiator acctlog-combined.json file will
+be moved into the spool directory. In certain situations it might be beneficial
+to have the flexibility to configure the scope of the transaction. 
+In high volume setups with large log files, small transactions could reduce
+storage usage in certain situations by being able to commit more data. In other
+setups it's probably much more likely that you want to optimize for CPU and IO.
+Depending on the individual problem, some configuration knobs would be useful
+to have.
+
 
 (this code does basically ..
 1. move current active JSON accounting file to $SPOOLDIR
