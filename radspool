@@ -114,7 +114,7 @@ my %MAPPING = (
 );
 
 # Lock the script so that only once instance is able to run
-open our $script, '<', __FILE__ or die "FATAL: Cannot open rad2sql file (ourself): $!\n";
+open our $script, '<', __FILE__ or die "FATAL: Cannot open radspool file (ourself): $!\n";
 flock $script, LOCK_EX|LOCK_NB or die "FATAL: Unable to lock file, another instance is probably running: $!\n";
 
 # Move current accounting file to $SPOOLDIR
