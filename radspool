@@ -24,10 +24,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #
-# radspool - JSON formatted accounting data from OSC's Radiator RADIUS server 
-#            into SQL and deals with potential SQL downtimes by spooling all
-#            accounting data until everything is successfully committed and
-#            by using SQL transaction to avoid getting into any flawed state.
+# radspool - Alternative way of getting RADIUS accounting data 
+#            (from eg. Radiator) into a "longterm" storage backend (currently
+#            All a RADIUS server needs to support is to
+#            write it's accounting data JSON formatted onto it's local
+#            filesystem. radspool is then responsibility to bring the data
+#            into the final backend (eg. cronjob).
+#            With this approach of using the local filesystem to write
+#            the data off first, the accounting data can't be lost due to 
+#            higher-layer dependency issues (eg. "SQL filtered/down")
+#            anymore.
 #
 # The idea behind this script is to store accounting data first on the local
 # filesystem of the Radiator host before it's going to be further processed and
