@@ -1,8 +1,7 @@
-# radspool
-radspool.pl brings JSON formatted accounting data from OSC's Radiator RADIUS 
-server into SQL and deals with potential SQL downtimes by spooling all 
-accounting data until there is a successful commit for a whole file and by
-using SQL transaction to avoid getting into any flawed state.
+# radspool - brings JSON formatted accounting data from OSC's Radiator RADIUS 
+#            server into SQL and deals with potential SQL downtimes by spooling
+#            all accounting data until everything is successfully comitted and
+#            by using SQL transaction to avoid getting into any flawed state.
 
 ## Description
 The idea behind this script is to store accounting data first on the local
