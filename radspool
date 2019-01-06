@@ -33,7 +33,7 @@
 #            the data off first, the accounting data can't be lost that
 #            easily anymore just due to some higher-layer dependency issues
 #            (eg. "SQL filtered/down") anymore.
-#            #            
+#           
 # The idea behind this script is to store accounting data first on the local
 # filesystem of the Radiator host before it's going to be further processed and
 # finally put into the SQL/DB backend. By having filesystem level access on the
