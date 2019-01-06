@@ -40,7 +40,7 @@
 # any certain issue that leads to an exception, it will SQL rollback if needed
 # (single transaction is started on each accounting file) and a final commit is
 # omitted. If all inserts succeeded, then the file containing the data for those
-# inserts is deleted at the end..
+# inserts is deleted at the end as well.
 #
 # In case of issue, the accounting file containing the data will not be deleted
 # instead it will remain where it is and radspool on it's next execution
