@@ -1,7 +1,7 @@
 # radspool
 Brings JSON formatted accounting data from OSC's Radiator RADIUS server into
 SQL and deals with potential SQL downtimes by spooling all accounting data
-until everything is successfully comitted and by using SQL transaction to
+until everything is successfully committed and by using SQL transaction to
 avoid getting into any flawed state.
 
 ## Description
