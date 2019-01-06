@@ -1,0 +1,169 @@
+#!/bin/perl
+# Copyright (C) 2019 Christian Meutes <christian.meutes@errxtx.net>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+#
+# radspool - brings JSON formatted accounting data from OSC's Radiator RADIUS
+#            server into SQL and deals with SQL downtime by spooling all
+#            accounting data as long as necessary until the backend is
+#            available again
+#
+# The idea behind this script is to get accounting data into a file on the
+# local filesystem of the Radiator host.By using JSON formatting the file can
+# then be easily parsed and used by any process and purpose (eg. exporting into
+# ElasticSearch). This script parses these accounting files and inserts them
+# into a configured SQL backend. If the SQL backend is non-functional and
+# cannot be accessed, the script fails and if necessary will try to SQL
+# rollback, as well as keeping any accounting file not yet inserted into SQL.
+# If the configured SQL backend is not available eg. not able to be reached,
+# then $SPOOLDIR will grow on each script execution by another accounting file
+# (the active Radiator acctlog-combined.json file will be moved into the spool
+# directory.
+#
+# (Above code does basically that: ..
+# 1. Move current active JSON based accounting file to $SPOOLDIR
+# 2. Build array of file from $SPOOLDIR and loop through
+# 3. Open that file, parse JSON and prepare SQL insert with the new data
+# 4. Do SQL commit and delete file if no exception has happened so far
+# 5. If exception before (4) did arise then SQL rollback and keep file )
+#
+
+use strict;
+use warnings;
+
+use JSON::XS;
+use DBI;
+use File::Copy;
+use Time::HiRes qw(time);
+use POSIX qw(strftime);
+use Fcntl qw(:flock);
+use Syntax::Keyword::Try;
+
+# Modify next block to suit your needs
+
+# JSON formatted accounting file
+my $ACCTFILE = '/var/log/radius/accounting/sql/acctlog-combined.json';
+# On execution $ACCTFILE is moved to $SPOOLDIR and all files in that directory
+# are considered as candidates to be inserted into SQL
+my $SPOOLDIR  = '/var/log/radius/accounting/sql/spool/';
+my $DBHOST   = 'yourhost';
+my $DBPORT   =  3306;
+my $DBDRIVER = 'mysql';
+my $DBNAME   = 'yourdbname';
+my $DBUSER   = 'youruser';
+my $DBPASS   = 'yourpass';
+my $DBTABLE  = 'yourtable';
+
+# JSON to SQL schema mapping table Hash-key is the attribute found in the JSON
+# file. Hash-value contains the SQL column name.  Modify this hash to your
+# needs so that it matches with your environment.
+my %MAPPING = (
+    username               => 'USERNAME',
+    username_nas           => 'USERNAMENAS',
+    timestamp              => 'TIME_STAMP',
+    acct_status_type       => 'ACCTSTATUSTYPE',
+    acct_delay_time        => 'ACCTDELAYTIME',
+    acct_input_octets      => 'ACCTINPUTOCTETS',
+    acct_output_octets     => 'ACCTOUTPUTOCTETS',
+    acct_session_id        => 'ACCTSESSIONID',
+    acct_session_time      => 'ACCTSESSIONTIME',
+    acct_terminate_cause   => 'ACCTTERMINATECAUSE',
+    framed_ip_address      => 'FRAMEDIPADDRESS',
+    framed_ipv6_address    => 'FRAMEDIPV6ADDRESS',
+    framed_protocol        => 'FRAMEDPROTOCOL',
+    nas_identifier         => 'NASIDENTIFIER',
+    nas_port_type          => 'NASPORTTYPE',
+    nas_port               => 'NASPORT',
+    dnis                   => 'DNIS',
+    calling_station_id     => 'CALLINGSTATIONID',
+    called_station_id      => 'CALLEDSTATIONID',
+    service_type           => 'SERVICETYPE',
+    airespace_wlan_id      => 'AIRESPACEWLANID',
+);
+
+# Lock the script so that only once instance is able to run
+open our $script, '<', __FILE__ or die "FATAL: Cannot open rad2sql file (ourself): $!\n";
+flock $script, LOCK_EX|LOCK_NB or die "FATAL: Unable to lock file, another instance is probably running: $!\n";
+
+# Move current accounting file to $SPOOLDIR
+my $time = time;
+my $date = strftime "%Y%m%d%H%M%S", localtime $time;
+$date .= sprintf "%03d", ($time-int($time))*1000; # without rounding
+move($ACCTFILE,$SPOOLDIR."/acctlog.json.".$date) or
+    print "INFO: No new '$ACCTFILE' accounting file or permissions wrong\n";
+
+# Open directory and build the array of files
+opendir(DIR, $SPOOLDIR) or die "FATAL: Could not open spool directory '$SPOOLDIR'\n";
+my @files = grep { -f $SPOOLDIR.$_ } readdir(DIR);
+closedir(DIR);
+die "INFO: $SPOOLDIR is empty\n" unless @files;
+
+# Create db handle once, single connection
+my $dsn = "dbi:$DBDRIVER:$DBNAME:$DBHOST:$DBPORT";
+my $dbh = DBI->connect($dsn, $DBUSER, $DBPASS, {
+    RaiseError => 1,
+});
+
+# Loop through files, catch exceptions
+foreach my $filename (@files) {
+    my @data;
+    my $file = $SPOOLDIR.$filename;
+    try {
+
+        # Decode the JSON file, each line is one accounting record
+        open(my $fh, '<', $file) or
+            do { print "WARN: Could not open '$file' in '$SPOOLDIR': $!\n"; next };
+        while (my $line = <$fh>) {
+            my $json_data = decode_json($line);
+            my %mapped = map { ($MAPPING{$_} => $json_data->{$_}//'') } keys %MAPPING;
+            push @data, \%mapped;
+        }
+        close($fh);
+
+        # Start SQL transaction
+        $dbh->begin_work;
+        my $sth;
+        for my $row (@data) {
+            my $placeholders = join ',', ('?')x(keys %MAPPING);
+            my @insert_values = @{$row} { sort keys %{$row} };
+            my $insert_cols = join ',', map { $dbh->quote_identifier($_) } sort values %MAPPING;
+            my $insert = "INSERT INTO `$DBTABLE` ($insert_cols) VALUES ($placeholders)";
+            $sth = $dbh->prepare($insert);
+            $sth->execute(@insert_values);
+        }
+
+        # Try to commit and delete the file if no exception was thrown so far
+        $dbh->commit();
+        unlink $file;
+    }
+
+    # Exception handling, rollback in case of issues and keep accounting file
+    catch {
+        print "WARN: Something went wrong: $@\nDoing $DBDRIVER rollback\n";
+        $dbh->rollback;
+    }
+}
+
+$dbh->disconnect;
+
