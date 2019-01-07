@@ -1,5 +1,18 @@
-# radspool
-More of a concept than technically anything advanced this routine favors the use of storing the ongoing RADIUS accounting data stream first of all onto a local filesystem on the RADIUS host and then use radspool to get this data in frequent intervals into the final database backend. Radiator provides as a JSON logging module (inside of goodies) which can append accounting records in JSON formatted objects to logfiles. radspool is then used to get the accounting data out of those files in frequent intervals and delivers it into the final backend. With this approach accounting data won't get lost when the RADIUS server is for example just simply undergoing a maintenance window which results in few minutes of outage. All accounting records get cached on the local filesystem into JSON based files and will only be pruned again when radspool was able to commit the accounting data finally to the backend/DB server.
+# radspool - 
+             More of a concept than technically anything advanced, this design
+             favors the use of storing the ongoing RADIUS accounting data stream
+             as JSON formatted object files in a directory serving as the
+             accounting buffer spool on the RADIUS host. radspool sends the data
+             out of this spool in frequent intervals to the final backend.
+             With this approach accounting data won't get lost when the RADIUS
+             server is eg. simply undergoing a maintenance of very few minutes
+             of an outage. All accounting records encapsulated in JSON in a file
+             need to be committed to the backend before the file becomes
+             deleted. That's because a single SQL transaction is used for all
+             records of a JSON file. If something within that process goes
+             wrong a SQL rollback will be made and all previous SQL operations
+             which were created from that file will be undone/non-committed.
+
             
 
 ## Description
