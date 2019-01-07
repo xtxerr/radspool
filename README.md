@@ -1,5 +1,4 @@
-# radspool - 
-             More of a concept than technically anything advanced, this design
+# radspool - More of a concept than technically anything advanced, this design
              favors the use of storing the ongoing RADIUS accounting data stream
              as JSON formatted object files in a directory serving as the
              accounting buffer spool on the RADIUS host. radspool sends the data
