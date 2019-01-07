@@ -1,6 +1,6 @@
 # radspool
 
-More of a concept than technically anything advanced, this design favors the use of storing the ongoing RADIUS accounting data stream as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool sends the data out of this spool in frequent intervals to the final backend. With this approach accounting data won't get lost when the SQL master server is for example just having a maintenance and cannot be reached anymore. All accounting records encapsulated in JSON in a file need to be committed to the backend before the file becomes deleted. That's because a single SQL transaction is used for all records of a JSON file. If something within that process goes wrong a SQL rollback will be made and all previous SQL operations which were created from that file will be undone/non-committed.
+More of a concept than technically anything advanced, this design favors the use of storing the ongoing RADIUS accounting data stream as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool sends the data out of this spool in frequent intervals to the final backend. With this approach accounting data won't get lost when the SQL master server is for example just having a maintenance and cannot be reached anymore.
 
             
 
