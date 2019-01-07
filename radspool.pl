@@ -24,15 +24,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #
-# radspool - Alternative way of getting RADIUS accounting data (from eg.
-#            Radiator) into a "longterm" storage backend. All a RADIUS server
-#            needs to support is to write it's accounting data JSON formatted
-#            onto it's local filesystem. radspool is then responsibility to
-#            get this data into the final backend (eg. scheduled by cron).
-#            With the approach of using the local filesystem to write
-#            the data off first, the accounting data can't be lost that
-#            easily anymore just due to some higher-layer dependency issues
-#            (eg. "SQL filtered/down") anymore.
+# radspool - More of a concept than technically anything advanced, this design
+#            favors the use of storing the ongoing RADIUS accounting data stream
+#            as JSON formatted object files in a directory serving as the
+#            accounting buffer spool on the RADIUS host. radspool sends the data
+#            out of this spool in frequent intervals to the final backend.
+#            With this approach accounting data won't get lost when the RADIUS
+#            server is eg. simply undergoing a maintenance of very few minutes
+#            of an outage. All accounting records encapsulated in JSON in a file
+#            need to be committed to the backend before the file becomes
+#            deleted. That's because a single SQL transaction is used for all
+#            records of a JSON file. If something within that process goes
+#            wrong a SQL rollback will be made and all previous SQL operations
+#            which were created from that file will be undone/non-committed.
 #           
 # The idea behind this script is to store accounting data first on the local
 # filesystem of the Radiator host before it's going to be further processed and
