@@ -89,7 +89,7 @@ use Syntax::Keyword::Try;
 my $ACCTFILE = '/var/log/radius/accounting/sql/acctlog-combined.json';
 # On execution $ACCTFILE is moved to $SPOOLDIR and all files in that directory
 # are considered as candidates to be inserted into SQL
-my $SPOOLDIR  = '/var/log/radius/accounting/sql/spool/';
+my $SPOOLDIR = '/var/log/radius/accounting/sql/spool/';
 my $DBHOST   = 'yourhost';
 my $DBPORT   =  3306;
 my $DBDRIVER = 'mysql';
