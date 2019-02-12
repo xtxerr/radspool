@@ -1,4 +1,4 @@
-# radspool
+### radspool
 
 More of a concept than technically anything advanced, this design favors the use of storing the RADIUS accounting payload as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool sends the data out of this spool in frequent intervals to the final backend. With this approach accounting data won't get lost when the SQL master server is for example just having a maintenance and cannot be reached anymore.
 
