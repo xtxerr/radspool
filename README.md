@@ -4,7 +4,7 @@ More of a concept than technically anything advanced, this design favors the use
 
             
 
-## Description
+#### Description
 The idea behind this script is to store accounting data first on the local
 filesystem of the Radiator host before it's going to be further processed and
 finally put into the SQL/DB backend. By having filesystem level access on the
