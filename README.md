@@ -1,32 +1,10 @@
 ### radspool
 
-More of a concept than technically anything advanced, this design favors the use of storing the RADIUS accounting payload as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool sends the data out of this spool in frequent intervals to the final backend. With this approach accounting data won't get lost when the SQL master server is for example just having a maintenance and cannot be reached anymore.
-
-            
+More of a concept than technically anything advanced, this design favors the use of storing the RADIUS accounting payload as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool sends the data out of this spool in frequent intervals to the final backend. With this approach accounting data won't get lost when the RADIUS database is non-responsive or broken.
 
 #### Description
 The idea behind this script is to store accounting data first on the local
-filesystem of the Radiator host before it's going to be further processed and
-finally put into the SQL/DB backend. By having filesystem level access on the
-JSON formatted data, other applications can easily have access and participate
-as well (eg. exporting into ElasticSearch).
+filesystem before being further processed and inserted into a SQL backend.
 
-This script parses these accounting files and inserts them into a configured
-SQL backend. If the SQL backend is non-functional, cannot be accessed, has
-any certain issue that leads to an exception, it will SQL rollback if needed
-(single transaction is started on each accounting file) and a final commit is
-omitted. If all inserts succeeded, then the file containing the data for those
-inserts is deleted at the end as well.
+Will SQL rollback when needed (single transaction is started on each accounting file). If all inserts succeed, the JSON accounting data is deleted from the filesystem. In case of issues, the accounting file count in the spool directory will increment and all of them are going to be processed and tried to be inserted again on the next run.
 
-In case of issue, the accounting file containing the data will not be deleted,
-instead it will remain where it is and radspool on it's next execution
-(eg. cron) will try to insert the contained data again. $SPOOLDIR will grow
-in that case by one new accounting file - each time the script is run, the
-most recent and active 'acctlog-combined.json' file will be moved into the
-spool directory. In certain situations it might be beneficial to have the
-flexibility to configure the scope of the transaction. In high volume setups
-with large log files, small transactions could reduce storage usage in
-certain situations by being able to commit inserts not affected by the failed
-operation. In other setups it's probably much more likely that you want to
-optimize for CPU and IO. Depending on the individual problem, some
-configuration knobs would be useful to have.
