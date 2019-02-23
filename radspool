@@ -28,9 +28,9 @@
 #
 # (this code ..
 # 1. moves the current active JSON accounting file to $SPOOLDIR
-# 2. build an array of files from $SPOOLDIR and loop through
-# 3. opens the next file, parse it's JSON, prepare SQL insert with the new data
-# 4. on any exception in any previous steps => do a SQL rollback and skip the file
+# 2. build an array of files from $SPOOLDIR
+# 3. parse the JSON, prepares the INSERTs
+# 4. on any exception => do a SQL rollback and skip the file
 # 5. do a SQL commit and delete the file
 # )
 
