@@ -1,6 +1,6 @@
 ### radspool
 
-More of a concept than technically anything advanced, this script and approach favors the use of storing RADIUS accounting payload as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool will send the data out of this spool in frequent intervals (eg. cron) to the SQL final backend. With this approach accounting data won't get lost when the RADIUS database is non-responsive or broken.
+More of a concept than technically anything advanced, this script and approach favors the use of storing RADIUS accounting payload as JSON formatted object files in a directory serving as the accounting buffer spool on the RADIUS host. radspool will send the data out of this spool in frequent intervals (eg. cron) to the final SQL backend. With this approach accounting data won't get lost when the RADIUS database is non-responsive or broken.
 
 #### Description
 The idea behind this script is to store accounting data first on the local filesystem before being further processed (eg. replicated into ElasticSearch) and inserted into the SQL backend (Radiator schema). 
