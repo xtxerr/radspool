@@ -30,8 +30,8 @@
 # 1. moves the current active JSON accounting file to $SPOOLDIR
 # 2. build an array of files from $SPOOLDIR
 # 3. parse the JSON, prepares the INSERTs
-# 4. on any exception => do a SQL rollback and skip the file
-# 5. do a SQL commit and delete the file
+# 4. on any exception => do a SQL rollback and skip the file or
+#    do a SQL commit and delete the file
 # )
 
 use strict;
